@@ -1,6 +1,6 @@
 VERSION?=$(shell git log --pretty=format:'%h' -n 1)
 
-DOCKER_NAMESPACE?=kharon
+DOCKER_NAMESPACE?=dexterity
 DOCKER_TAG?=latest
 
 GOOS?=$(shell go env GOOS)
