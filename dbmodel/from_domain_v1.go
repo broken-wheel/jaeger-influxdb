@@ -78,8 +78,24 @@ func SpanToPointsV1(span *model.Span, spanMeasurement, logMeasurement string, lo
 	points := append(make([]models.Point, 0, len(span.Logs)+1), spanPoint)
 
 	if len(span.Logs) > 0 {
-		var tags models.Tags
-		tags.SetString(common.TraceIDKey, span.TraceID.String())
+		var _tags models.Tags
+		var sysTags models.Tags
+		sysFields := models.Fields{}
+
+		_tags.SetString(common.TraceIDKey, span.TraceID.String())
+
+		sysTags.SetString(common.AppNameKey, span.Process.ServiceName)
+		sysFields[common.ProcIDKey] = span.OperationName
+		sysTags.SetString(common.FacilityKey, "console")
+		sysFields[common.FacilityCodeKey] = 14
+		sysFields[common.VersionKey] = 1
+		sysTags.SetString(common.HostKey, tags.GetString("ip"))
+		sysTags.SetString(common.HostNameKey, tags.GetString("hostname"))
+
+		// Default value
+		sysTags.SetString(common.SeverityKey, "info")
+		sysFields[common.SeverityCodeKey] = 6
+		sysFields[common.MessageKey] = ""
 
 		for i := range span.Logs {
 			spanLog := &span.Logs[i]
@@ -105,9 +121,25 @@ func SpanToPointsV1(span *model.Span, spanMeasurement, logMeasurement string, lo
 					continue
 				}
 				fields[key] = value
+				sval := fmt.Sprintf("%v", value)[1:]
+				sysFields[common.TimestampKey] = spanLog.Timestamp.UnixNano()
+				if key == "type" {
+					sysTags.SetString(common.SeverityKey, sval)
+					sysFields[common.SeverityCodeKey] = common.SeverityMap[sval]
+				}
+				if key == "msg" {
+					sysFields[common.MessageKey] = fmt.Sprintf("%v", value)[1:]
+				}
 			}
 
-			point, err := models.NewPoint(logMeasurement, tags, fields, spanLog.Timestamp)
+			point, err := models.NewPoint(logMeasurement, _tags, fields, spanLog.Timestamp)
+			if err != nil {
+				logger.Warn("skipping span log", common.SpanIDKey, span.SpanID.String())
+				continue
+			}
+			points = append(points, point)
+
+			point, err = models.NewPoint("syslog", sysTags, sysFields, spanLog.Timestamp)
 			if err != nil {
 				logger.Warn("skipping span log", common.SpanIDKey, span.SpanID.String())
 				continue

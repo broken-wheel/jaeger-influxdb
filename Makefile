@@ -1,6 +1,6 @@
 VERSION?=$(shell git log --pretty=format:'%h' -n 1)
 
-DOCKER_NAMESPACE?=quay.io/influxdb
+DOCKER_NAMESPACE?=kharon
 DOCKER_TAG?=latest
 
 GOOS?=$(shell go env GOOS)
@@ -22,7 +22,7 @@ docker-all-in-one: build-linux
 
 .PHONY: docker-collector
 docker-collector: build-linux
-	docker build . -f ./cmd/jaeger-influxdb/Dockerfile.collector -t $(DOCKER_NAMESPACE)/jaeger-collector-influxdb:$(DOCKER_TAG)
+	docker build . -f ./cmd/jaeger-influxdb/Dockerfile.collector -t $(DOCKER_NAMESPACE)/jaeger-collector-syslog-influxdb:$(DOCKER_TAG)
 
 .PHONY: docker-query
 docker-query: build-linux
